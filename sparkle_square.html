@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparkle Square Demo</title>
+    <style>
+        :root {
+            --bg: #05050a;
+            --panel: rgba(255, 255, 255, 0.03);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --cyan: #00d4ff;
+            --text: rgba(255, 255, 255, 0.85);
+            --muted: rgba(255, 255, 255, 0.5);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000000 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .card {
+            width: min(520px, 92vw);
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 18px;
+            padding: 28px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 60px rgba(0, 212, 255, 0.08);
+        }
+
+        .title {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 13px;
+            color: var(--cyan);
+            margin-bottom: 16px;
+            text-align: center;
+            text-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+        }
+
+        .square-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0 20px;
+        }
+
+        .square {
+            width: 200px;
+            height: 200px;
+        }
+
+        .controls {
+            display: grid;
+            gap: 14px;
+        }
+
+        .control {
+            display: grid;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--cyan);
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title">Sparkle Square</div>
+        <div class="square-wrap">
+            <div class="square" id="sparkle"></div>
+        </div>
+
+        <div class="controls">
+            <div class="control">
+                <div class="row"><span>Interval</span><span id="intervalLabel">200ms</span></div>
+                <input id="intervalInput" type="range" min="60" max="2000" step="20" value="200">
+            </div>
+            <div class="control">
+                <div class="row"><span>Grid spacing</span><span id="spacingLabel">10px</span></div>
+                <input id="spacingInput" type="range" min="6" max="16" step="1" value="10">
+            </div>
+            <div class="toggle">
+                <input id="animateToggle" type="checkbox" checked>
+                <label for="animateToggle">Animate sparkle</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sparkleEl = document.getElementById('sparkle');
+        const intervalInput = document.getElementById('intervalInput');
+        const spacingInput = document.getElementById('spacingInput');
+        const intervalLabel = document.getElementById('intervalLabel');
+        const spacingLabel = document.getElementById('spacingLabel');
+        const animateToggle = document.getElementById('animateToggle');
+
+        let sparkleTick = 0;
+        let sparkleInterval = Number(intervalInput.value);
+        let sparkleTimer = null;
+
+        function noise(a, b, seed = 0) {
+            const x = Math.sin((a + seed) * 12.9898 + (b - seed) * 78.233) * 43758.5453;
+            return x - Math.floor(x);
+        }
+
+        function createSparkleGrid(size, spacing, seed) {
+            let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
+            svg += `<rect x="0" y="0" width="${size}" height="${size}" fill="rgba(255,255,255,0.02)" rx="14"/>`;
+            for (let x = spacing; x < size - spacing; x += spacing) {
+                for (let y = spacing; y < size - spacing; y += spacing) {
+                    const opacity = 0.4 + noise(x, y, seed) * 0.5;
+                    const dotSize = 1.5 + noise(y, x, seed) * 0.6;
+                    svg += `<circle cx="${x}" cy="${y}" r="${dotSize}" fill="#00d4ff" opacity="${opacity}" style="filter: drop-shadow(0 0 2px #00d4ff)"/>`;
+                }
+            }
+            svg += '</svg>';
+            return svg;
+        }
+
+        function renderSparkle() {
+            const spacing = Number(spacingInput.value);
+            sparkleEl.innerHTML = createSparkleGrid(200, spacing, sparkleTick);
+        }
+
+        function startSparkle() {
+            if (sparkleTimer) clearInterval(sparkleTimer);
+            sparkleTimer = setInterval(() => {
+                sparkleTick = (sparkleTick + 1) % 100000;
+                renderSparkle();
+            }, sparkleInterval);
+        }
+
+        intervalInput.addEventListener('input', () => {
+            sparkleInterval = Number(intervalInput.value);
+            intervalLabel.textContent = `${sparkleInterval}ms`;
+            if (animateToggle.checked) startSparkle();
+        });
+
+        spacingInput.addEventListener('input', () => {
+            spacingLabel.textContent = `${spacingInput.value}px`;
+            renderSparkle();
+        });
+
+        animateToggle.addEventListener('change', () => {
+            if (animateToggle.checked) {
+                startSparkle();
+            } else if (sparkleTimer) {
+                clearInterval(sparkleTimer);
+                sparkleTimer = null;
+            }
+        });
+
+        intervalLabel.textContent = `${intervalInput.value}ms`;
+        spacingLabel.textContent = `${spacingInput.value}px`;
+        renderSparkle();
+        startSparkle();
+    </script>
+</body>
+</html>
