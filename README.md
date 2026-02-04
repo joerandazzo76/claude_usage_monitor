@@ -15,7 +15,7 @@ Real-time dashboard for monitoring your Claude.ai usage limits.
 
 1. **Copy settings example:**
    ```bash
-   cp settings.example.json settings.local.json
+   cp .claude/settings.example.json .claude/settings.local.json
    ```
 
 2. **Get your session cookie:**
@@ -23,7 +23,7 @@ Real-time dashboard for monitoring your Claude.ai usage limits.
    - Press F12 → Application → Cookies → claude.ai
    - Copy the `sessionKey` value
 
-3. **Add cookie to settings.local.json:**
+3. **Add cookie to .claude/settings.local.json:**
    ```json
    {
      "sessionCookie": "sk-ant-sid01-..."
@@ -48,7 +48,7 @@ Theme preference is saved in your browser.
 
 ## Configuration
 
-### settings.local.json
+### .claude/settings.local.json
 
 ```json
 {
@@ -88,10 +88,11 @@ node server.js
 
 ```
 claude_usage/
+├── .claude/
+│   ├── settings.example.json  # Example config
+│   └── settings.local.json    # Your config (gitignored)
 ├── server.js                  # Node.js proxy server
 ├── claude_usage_monitor.html  # Dashboard UI
-├── settings.example.json      # Example config
-├── settings.local.json        # Your config (gitignored)
 ├── .gitignore
 └── README.md
 ```
@@ -100,7 +101,7 @@ claude_usage/
 
 **"Session expired or invalid"** - Get a new cookie from claude.ai
 
-**"No session cookie configured"** - Create settings.local.json with your cookie
+**"No session cookie configured"** - Create .claude/settings.local.json with your cookie
 
 **Port already in use** - `set PORT=3001 && node server.js`
 
