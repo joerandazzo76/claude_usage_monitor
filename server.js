@@ -5,29 +5,38 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PORT = process.env.PORT || 3000;
+const SESSION_FILE = path.join(__dirname, 'session.json');
 
-// Load .env file (simple parser, no deps)
-const envPath = path.join(__dirname, '.env');
-if (fs.existsSync(envPath)) {
-    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
-        const match = line.match(/^\s*([\w]+)\s*=\s*(.*)?\s*$/);
-        if (match && !process.env[match[1]]) {
-            process.env[match[1]] = (match[2] || '').replace(/^["']|["']$/g, '');
+// Load session from file
+function loadSession() {
+    try {
+        if (fs.existsSync(SESSION_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+            return data.sessionKey || '';
         }
-    });
+    } catch (e) {
+        console.error('Error loading session:', e.message);
+    }
+    return '';
 }
 
-const PORT = process.env.PORT || 3000;
-const SESSION_COOKIE = process.env.CLAUDE_SESSION_COOKIE || '';
+// Save session to file
+function saveSession(sessionKey) {
+    try {
+        fs.writeFileSync(SESSION_FILE, JSON.stringify({ sessionKey }, null, 2));
+        return true;
+    } catch (e) {
+        console.error('Error saving session:', e.message);
+        return false;
+    }
+}
+
+let SESSION_COOKIE = loadSession();
 
 if (!SESSION_COOKIE) {
-    console.log('\n⚠️  No session cookie configured!\n');
-    console.log('Create a .env file with:');
-    console.log('  CLAUDE_SESSION_COOKIE=sk-ant-sid01-...\n');
-    console.log('To get your cookie:');
-    console.log('  1. Open https://claude.ai and log in');
-    console.log('  2. DevTools (F12) → Application → Cookies → claude.ai');
-    console.log('  3. Copy the "sessionKey" value\n');
+    console.log('\n⚠️  No session cookie configured.');
+    console.log('   Open the dashboard and paste your cookie in Settings.\n');
 }
 
 const MIME_TYPES = {
@@ -67,7 +76,7 @@ function sendError(res, statusCode, message, details = null) {
 function proxyToClaudeAI(req, res) {
     if (!SESSION_COOKIE) {
         sendError(res, 401, 'No session cookie configured',
-            'Add CLAUDE_SESSION_COOKIE to .env file');
+            'Open the dashboard and paste your cookie in Settings');
         return;
     }
 
@@ -216,10 +225,56 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Get session status (not the key itself for security)
+    if (url.pathname === '/api/session' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            configured: !!SESSION_COOKIE,
+            preview: SESSION_COOKIE ? SESSION_COOKIE.slice(0, 20) + '...' : null
+        }));
+        return;
+    }
+
+    // Save session key
+    if (url.pathname === '/api/session' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { sessionKey } = JSON.parse(body);
+                if (sessionKey && saveSession(sessionKey)) {
+                    SESSION_COOKIE = sessionKey;
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true }));
+                } else {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Invalid session key' }));
+                }
+            } catch (e) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            }
+        });
+        return;
+    }
+
+    // Clear session
+    if (url.pathname === '/api/session' && req.method === 'DELETE') {
+        SESSION_COOKIE = '';
+        saveSession('');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+        return;
+    }
+
     // Static files
     let filePath = url.pathname;
     if (filePath === '/') {
         filePath = '/claude_usage_monitor.html';
+    } else if (filePath === '/neon') {
+        filePath = '/claude_usage_neon.html';
+    } else if (filePath === '/tutorial') {
+        filePath = '/tutorial.html';
     }
 
     const fullPath = path.join(__dirname, filePath);
@@ -244,7 +299,10 @@ server.on('error', (err) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`\n🚀 Claude Usage Monitor running at http://localhost:${PORT}\n`);
+    console.log(`\n🚀 Claude Usage Monitor`);
+    console.log(`   http://localhost:${PORT}          (classic)`);
+    console.log(`   http://localhost:${PORT}/neon     (glassmorphism)`);
+    console.log(`   http://localhost:${PORT}/tutorial (how it works)\n`);
     if (SESSION_COOKIE) {
         console.log('✅ Session cookie configured');
     } else {

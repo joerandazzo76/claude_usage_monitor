@@ -17,3 +17,4 @@ Thumbs.db
 # Config (contains secrets)
 .env
 settings.local.json
+session.json

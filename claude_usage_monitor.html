@@ -450,7 +450,7 @@
         let chart = null;
         let updateInterval = null;
         let countdownInterval = null;
-        let nextUpdateSeconds = 5;
+        let nextUpdateSeconds = 30;
         let lastUpdateTime = null;
         let usageData = [];
         let isDemoMode = false;
@@ -762,7 +762,7 @@
                     isDemoMode = false;
                     lastUpdateTime = new Date();
                     statusText.textContent = `Live Mode - Updated: ${lastUpdateTime.toLocaleTimeString()}`;
-                    nextUpdateSeconds = 5;
+                    nextUpdateSeconds = 30;
                     return;
 
                 } catch (error) {
@@ -785,7 +785,7 @@
                 statusDot.classList.remove('error');
                 lastUpdateTime = new Date();
                 statusText.textContent = `Demo Mode - Updated: ${lastUpdateTime.toLocaleTimeString()}`;
-                nextUpdateSeconds = 5;
+                nextUpdateSeconds = 30;
             } catch (error) {
                 console.error('Error in demo mode:', error);
                 statusDot.classList.add('error');
@@ -817,7 +817,7 @@
         // Initialize
         function init() {
             fetchUsage();
-            updateInterval = setInterval(fetchUsage, 5000);
+            updateInterval = setInterval(fetchUsage, 30000);
             countdownInterval = setInterval(updateCountdown, 1000);
         }
 
