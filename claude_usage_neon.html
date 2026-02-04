@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Usage Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000000 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 300;
+            color: #8b5cf6;
+            margin-bottom: 24px;
+            text-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .metric-value {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .metric-current {
+            font-size: 42px;
+            font-weight: 200;
+        }
+
+        .metric-limit {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .metric-percent {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .metric-reset {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 12px;
+        }
+
+        /* Bar Chart Section */
+        .bar-chart-section {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .bar-chart-legend {
+            display: flex;
+            justify-content: flex-end;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Radial Charts Section */
+        .radial-section {
+            margin-bottom: 40px;
+        }
+
+        .radial-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .radial-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .radial-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .radial-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 16px;
+        }
+
+        .radial-reset {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 12px;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 12px #00ff88;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.error {
+            background: #ff4466;
+            box-shadow: 0 0 12px #ff4466;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .countdown {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+            50% { transform: translateY(-30px) translateX(15px); opacity: 0.1; }
+        }
+
+        .instructions {
+            max-width: 500px;
+            margin: 0 auto 40px;
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+        }
+
+        .instructions h2 {
+            color: #00d4ff;
+            margin-bottom: 16px;
+        }
+
+        .instructions p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.8;
+        }
+
+        .instructions code {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #00d4ff;
+        }
+
+        /* Header with settings */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            margin-bottom: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn.active {
+            background: rgba(0, 255, 136, 0.15);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .btn.active:hover {
+            background: rgba(0, 255, 136, 0.25);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .settings-panel.show {
+            display: block;
+        }
+
+        .settings-panel h3 {
+            font-size: 14px;
+            font-weight: 400;
+            color: #8b5cf6;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .settings-input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .settings-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-save {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .btn-save:hover {
+            background: rgba(0, 212, 255, 0.25);
+        }
+
+        .settings-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 12px;
+        }
+
+        .settings-status.success {
+            color: #00ff88;
+        }
+
+        .settings-status.error {
+            color: #ff4466;
+        }
+
+        /* Toggle Switch */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: rgba(0, 255, 136, 0.3);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active::after {
+            left: 23px;
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        .status-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Claude Usage</h1>
+            <div class="header-actions">
+                <button class="btn" id="settingsBtn" onclick="toggleSettings()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                    </svg>
+                    Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settingsPanel">
+            <h3>Session Cookie</h3>
+            <p style="font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 16px;">
+                Get from claude.ai → DevTools (F12) → Application → Cookies → sessionKey
+            </p>
+            <div class="settings-row">
+                <input type="password" class="settings-input" id="sessionInput" placeholder="sk-ant-sid01-...">
+                <button class="btn btn-save" onclick="saveSession()">Save</button>
+                <button class="btn" onclick="clearSession()">Clear</button>
+            </div>
+            <div class="settings-status" id="settingsStatus"></div>
+        </div>
+
+        <div id="content"></div>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <!-- Bar Chart -->
+        <div class="bar-chart-section" id="barChartSection" style="display: none;">
+            <h2>Usage Overview</h2>
+            <div class="bar-chart-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ff88; box-shadow: 0 0 8px #00ff88;"></div>
+                    <span>Used</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: rgba(255,255,255,0.15);"></div>
+                    <span>Available</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radial Charts -->
+        <div class="radial-section" id="radialSection" style="display: none;">
+            <h2>Detailed View</h2>
+            <div class="radial-grid" id="radialGrid"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Initializing...</span>
+            </div>
+            <div class="status-controls">
+                <div class="toggle-wrapper">
+                    <span style="font-size: 12px; color: rgba(255,255,255,0.5);">Auto</span>
+                    <div class="toggle active" id="autoToggle" onclick="toggleAutoUpdate()"></div>
+                </div>
+                <span class="countdown" id="countdown">Next update in 30s</span>
+                <button class="btn" onclick="fetchUsage()" style="padding: 8px 14px;">Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let usageData = [];
+        let failedAttempts = 0;
+        let nextUpdate = 30;
+        let autoUpdateEnabled = true;
+        let updateInterval = null;
+        let countdownInterval = null;
+        let sessionConfigured = false;
+
+        const colors = {
+            green: '#00ff88',
+            cyan: '#00d4ff',
+            magenta: '#ff00ff',
+            orange: '#ffaa00'
+        };
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const colorValues = Object.values(colors);
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                const color = colorValues[i % colorValues.length];
+                particle.style.background = color;
+                particle.style.boxShadow = `0 0 6px ${color}`;
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Get color based on percentage
+        function getColor(percent) {
+            if (percent >= 90) return colors.orange;
+            if (percent >= 70) return colors.magenta;
+            if (percent >= 40) return colors.cyan;
+            return colors.green;
+        }
+
+        // Create dot-filled horizontal bar SVG
+        function createDotBar(percent, color, width, height = 8) {
+            const dotSpacing = 4;
+            const dotRadius = 2;
+            let svg = '';
+
+            // Background dots
+            for (let x = dotRadius; x < width - dotRadius; x += dotSpacing) {
+                for (let y = dotRadius; y < height - dotRadius; y += dotSpacing) {
+                    svg += `<circle cx="${x}" cy="${y}" r="${dotRadius}" fill="rgba(255,255,255,0.1)"/>`;
+                }
+            }
+
+            // Filled dots
+            const fillWidth = (percent / 100) * width;
+            for (let x = dotRadius; x < fillWidth - dotRadius; x += dotSpacing) {
+                for (let y = dotRadius; y < height - dotRadius; y += dotSpacing) {
+                    const opacity = 0.5 + Math.random() * 0.5;
+                    svg += `<circle cx="${x}" cy="${y}" r="${dotRadius}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
+                }
+            }
+
+            return svg;
+        }
+
+        // Render metric cards
+        function renderMetricCards() {
+            const container = document.getElementById('metricsGrid');
+            container.innerHTML = usageData.map(item => {
+                const color = getColor(item.current);
+                const barWidth = 200;
+                return `
+                    <div class="metric-card">
+                        <div class="metric-label">${item.name}</div>
+                        <div class="metric-value">
+                            <span class="metric-current" style="color: ${color}; text-shadow: 0 0 20px ${color}40;">${item.current}</span>
+                            <span class="metric-limit">/ 100</span>
+                        </div>
+                        <div class="metric-percent" style="color: ${color};">${item.current}% used</div>
+                        <svg width="${barWidth}" height="10" style="overflow: visible;">
+                            ${createDotBar(item.current, color, barWidth, 10)}
+                        </svg>
+                        <div class="metric-reset">${item.resetTime || ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render horizontal bar chart
+        function renderBarChart() {
+            const section = document.getElementById('barChartSection');
+            section.style.display = 'block';
+
+            // Remove old SVG and create new one
+            const oldSvg = section.querySelector('svg');
+            if (oldSvg) oldSvg.remove();
+
+            const width = section.clientWidth - 60 || 800;
+            const height = 300;
+            const barHeight = 50;
+            const barGap = 20;
+            const labelWidth = 140;
+            const chartWidth = width - labelWidth - 60;
+            const startX = labelWidth;
+
+            let svgContent = `<svg width="${width}" height="${height}" style="overflow: visible;">`;
+
+            // Defs for glow
+            svgContent += `
+                <defs>
+                    <filter id="barGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge>
+                            <feMergeNode in="blur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+            `;
+
+            // Grid lines and labels
+            for (let i = 0; i <= 10; i++) {
+                const x = startX + (i / 10) * chartWidth;
+                svgContent += `<line x1="${x}" y1="20" x2="${x}" y2="${height - 40}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+                svgContent += `<text x="${x}" y="${height - 15}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11">${i * 10}%</text>`;
+            }
+
+            // Bars
+            usageData.forEach((item, index) => {
+                const y = 30 + index * (barHeight + barGap);
+                const color = getColor(item.current);
+                const fillWidth = (item.current / 100) * chartWidth;
+                const dotSpacing = 6;
+                const dotRadius = 3;
+
+                // Label
+                svgContent += `<text x="${labelWidth - 15}" y="${y + barHeight / 2 + 4}" text-anchor="end" fill="rgba(255,255,255,0.8)" font-size="13" font-weight="500">${item.name}</text>`;
+
+                // Background bar (dimmed dots)
+                for (let x = startX + dotRadius + 2; x < startX + chartWidth - dotRadius; x += dotSpacing) {
+                    for (let dy = dotRadius + 2; dy < barHeight - dotRadius; dy += dotSpacing) {
+                        svgContent += `<circle cx="${x}" cy="${y + dy}" r="${dotRadius}" fill="rgba(255,255,255,0.08)"/>`;
+                    }
+                }
+
+                // Filled bar (colored dots)
+                for (let x = startX + dotRadius + 2; x < startX + fillWidth - dotRadius; x += dotSpacing) {
+                    for (let dy = dotRadius + 2; dy < barHeight - dotRadius; dy += dotSpacing) {
+                        const opacity = 0.4 + Math.random() * 0.5;
+                        const size = dotRadius * (0.8 + Math.random() * 0.4);
+                        svgContent += `<circle cx="${x}" cy="${y + dy}" r="${size}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
+                    }
+                }
+
+                // Glow outline on filled portion
+                if (item.current > 0) {
+                    svgContent += `<rect x="${startX}" y="${y}" width="${fillWidth}" height="${barHeight}" fill="none" stroke="${color}" stroke-width="1" opacity="0.3" rx="4" filter="url(#barGlow)"/>`;
+                }
+
+                // Background outline
+                svgContent += `<rect x="${startX}" y="${y}" width="${chartWidth}" height="${barHeight}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" rx="4"/>`;
+            });
+
+            svgContent += '</svg>';
+            section.insertAdjacentHTML('beforeend', svgContent);
+        }
+
+        // Create radial chart
+        function createRadialChart(percent, color, size = 180) {
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const outerRadius = size / 2 - 15;
+            const innerRadius = outerRadius - 30;
+
+            let svg = `<svg width="${size}" height="${size}" style="overflow: visible;">`;
+
+            svg += `
+                <defs>
+                    <filter id="rglow-${percent}" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <radialGradient id="rambient-${percent}">
+                        <stop offset="0%" stop-color="${color}" stop-opacity="0.1"/>
+                        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+            `;
+
+            // Ambient glow
+            svg += `<circle cx="${centerX}" cy="${centerY}" r="${outerRadius - 8}" fill="url(#rambient-${percent})" opacity="0.5"/>`;
+
+            // Rings
+            svg += `<circle cx="${centerX}" cy="${centerY}" r="${outerRadius + 2}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+            svg += `<circle cx="${centerX}" cy="${centerY}" r="${innerRadius - 2}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+
+            const dotSpacing = 7;
+            const fillEndAngle = -90 + (percent / 100) * 360;
+
+            // Background dots
+            for (let r = innerRadius + 6; r < outerRadius - 4; r += dotSpacing) {
+                const circumference = 2 * Math.PI * r;
+                const angleStep = (dotSpacing / circumference) * 360;
+                for (let angle = -90; angle < 270; angle += angleStep) {
+                    const rad = angle * Math.PI / 180;
+                    const x = centerX + r * Math.cos(rad);
+                    const y = centerY + r * Math.sin(rad);
+                    svg += `<circle cx="${x}" cy="${y}" r="1.5" fill="rgba(255,255,255,0.08)"/>`;
+                }
+            }
+
+            // Filled dots
+            for (let r = innerRadius + 6; r < outerRadius - 4; r += dotSpacing) {
+                const circumference = 2 * Math.PI * r;
+                const angleStep = (dotSpacing / circumference) * 360;
+                for (let angle = -90; angle < fillEndAngle - 2; angle += angleStep) {
+                    const rad = angle * Math.PI / 180;
+                    const x = centerX + r * Math.cos(rad);
+                    const y = centerY + r * Math.sin(rad);
+                    const opacity = 0.4 + Math.random() * 0.5;
+                    const dotSize = 1.5 + Math.random() * 0.6;
+                    svg += `<circle cx="${x}" cy="${y}" r="${dotSize}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
+                }
+            }
+
+            // Arcs
+            if (percent > 0) {
+                const startRad = -90 * Math.PI / 180;
+                const endRad = fillEndAngle * Math.PI / 180;
+                const largeArc = percent > 50 ? 1 : 0;
+
+                const ox1 = centerX + outerRadius * Math.cos(startRad);
+                const oy1 = centerY + outerRadius * Math.sin(startRad);
+                const ox2 = centerX + outerRadius * Math.cos(endRad);
+                const oy2 = centerY + outerRadius * Math.sin(endRad);
+
+                svg += `<path d="M ${ox1} ${oy1} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${ox2} ${oy2}" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.6" filter="url(#rglow-${percent})"/>`;
+
+                const ix1 = centerX + innerRadius * Math.cos(startRad);
+                const iy1 = centerY + innerRadius * Math.sin(startRad);
+                const ix2 = centerX + innerRadius * Math.cos(endRad);
+                const iy2 = centerY + innerRadius * Math.sin(endRad);
+
+                svg += `<path d="M ${ix1} ${iy1} A ${innerRadius} ${innerRadius} 0 ${largeArc} 1 ${ix2} ${iy2}" fill="none" stroke="${color}" stroke-width="0.5" opacity="0.4"/>`;
+
+                // Radial lines
+                svg += `<line x1="${centerX + innerRadius * Math.cos(startRad)}" y1="${centerY + innerRadius * Math.sin(startRad)}" x2="${centerX + outerRadius * Math.cos(startRad)}" y2="${centerY + outerRadius * Math.sin(startRad)}" stroke="${color}" stroke-width="1" opacity="0.3"/>`;
+                svg += `<line x1="${centerX + innerRadius * Math.cos(endRad)}" y1="${centerY + innerRadius * Math.sin(endRad)}" x2="${centerX + outerRadius * Math.cos(endRad)}" y2="${centerY + outerRadius * Math.sin(endRad)}" stroke="${color}" stroke-width="1" opacity="0.5"/>`;
+            }
+
+            // Center text
+            svg += `<text x="${centerX}" y="${centerY - 2}" text-anchor="middle" fill="#ffffff" font-size="26" font-weight="200" style="text-shadow: 0 0 12px ${color}80;">${percent}%</text>`;
+            svg += `<text x="${centerX}" y="${centerY + 14}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" letter-spacing="2">USED</text>`;
+
+            svg += '</svg>';
+            return svg;
+        }
+
+        // Render radial charts
+        function renderRadialCharts() {
+            const container = document.getElementById('radialGrid');
+            const section = document.getElementById('radialSection');
+            section.style.display = 'block';
+
+            container.innerHTML = usageData.map(item => {
+                const color = getColor(item.current);
+                return `
+                    <div class="radial-card">
+                        <div class="radial-label">${item.name}</div>
+                        ${createRadialChart(item.current, color)}
+                        <div class="radial-reset">${item.resetTime || ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Format reset time
+        function formatResetTime(date) {
+            const now = new Date();
+            const diff = date - now;
+            if (diff < 0) return 'Resetting...';
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (hours > 24) {
+                const days = Math.floor(hours / 24);
+                return `Resets in ${days}d ${hours % 24}h`;
+            }
+            return `Resets in ${hours}h ${minutes}m`;
+        }
+
+        // Render all
+        function renderAll() {
+            if (usageData.length === 0) return;
+            document.getElementById('content').style.display = 'none';
+            renderMetricCards();
+            renderBarChart();
+            renderRadialCharts();
+        }
+
+        // Fetch data
+        async function fetchUsage() {
+            // Check if session configured first
+            if (!sessionConfigured && failedAttempts === 0) {
+                await checkSession();
+            }
+
+            if (failedAttempts >= 3) {
+                document.getElementById('content').innerHTML = `
+                    <div class="instructions">
+                        <h2 style="color: #ff4466;">Connection Failed</h2>
+                        <p>Click Settings above to add your session cookie, or check if it's expired.</p>
+                    </div>
+                `;
+                document.getElementById('statusText').textContent = 'Not connected';
+                document.getElementById('statusDot').classList.add('error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/usage');
+                if (!response.ok) throw new Error('API error');
+
+                const data = await response.json();
+                usageData = [];
+
+                if (data.five_hour) {
+                    usageData.push({
+                        name: '5-Hour Window',
+                        current: Math.round(data.five_hour.utilization),
+                        resetTime: data.five_hour.resets_at ? formatResetTime(new Date(data.five_hour.resets_at)) : null
+                    });
+                }
+                if (data.seven_day) {
+                    usageData.push({
+                        name: '7-Day Window',
+                        current: Math.round(data.seven_day.utilization),
+                        resetTime: data.seven_day.resets_at ? formatResetTime(new Date(data.seven_day.resets_at)) : null
+                    });
+                }
+                if (data.seven_day_opus) {
+                    usageData.push({
+                        name: 'Opus (7-Day)',
+                        current: Math.round(data.seven_day_opus.utilization),
+                        resetTime: data.seven_day_opus.resets_at ? formatResetTime(new Date(data.seven_day_opus.resets_at)) : null
+                    });
+                }
+                if (data.seven_day_sonnet) {
+                    usageData.push({
+                        name: 'Sonnet (7-Day)',
+                        current: Math.round(data.seven_day_sonnet.utilization),
+                        resetTime: data.seven_day_sonnet.resets_at ? formatResetTime(new Date(data.seven_day_sonnet.resets_at)) : null
+                    });
+                }
+
+                renderAll();
+                document.getElementById('statusDot').classList.remove('error');
+                document.getElementById('statusText').textContent = `Live Mode - Updated: ${new Date().toLocaleTimeString()}`;
+
+            } catch (e) {
+                failedAttempts++;
+                document.getElementById('statusDot').classList.add('error');
+                document.getElementById('statusText').textContent = 'Connection failed';
+            }
+
+            nextUpdate = 30;
+        }
+
+        // Countdown
+        function updateCountdown() {
+            if (autoUpdateEnabled) {
+                document.getElementById('countdown').textContent = `Next update in ${nextUpdate}s`;
+                if (nextUpdate > 0) nextUpdate--;
+            } else {
+                document.getElementById('countdown').textContent = 'Auto-update paused';
+            }
+        }
+
+        // Toggle settings panel
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            const btn = document.getElementById('settingsBtn');
+            panel.classList.toggle('show');
+            btn.classList.toggle('active');
+
+            // Load current session status
+            if (panel.classList.contains('show')) {
+                checkSession();
+            }
+        }
+
+        // Check session status
+        async function checkSession() {
+            try {
+                const res = await fetch('/api/session');
+                const data = await res.json();
+                sessionConfigured = data.configured;
+
+                const status = document.getElementById('settingsStatus');
+                if (data.configured) {
+                    status.textContent = `Session configured: ${data.preview}`;
+                    status.className = 'settings-status success';
+                } else {
+                    status.textContent = 'No session configured';
+                    status.className = 'settings-status';
+                }
+            } catch (e) {
+                console.error('Failed to check session:', e);
+            }
+        }
+
+        // Save session
+        async function saveSession() {
+            const input = document.getElementById('sessionInput');
+            const status = document.getElementById('settingsStatus');
+            const sessionKey = input.value.trim();
+
+            if (!sessionKey) {
+                status.textContent = 'Please enter a session key';
+                status.className = 'settings-status error';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionKey })
+                });
+
+                if (res.ok) {
+                    status.textContent = 'Session saved!';
+                    status.className = 'settings-status success';
+                    input.value = '';
+                    sessionConfigured = true;
+                    failedAttempts = 0;
+                    // Auto-hide panel after success
+                    setTimeout(() => {
+                        document.getElementById('settingsPanel').classList.remove('show');
+                        document.getElementById('settingsBtn').classList.remove('active');
+                        status.textContent = '';
+                    }, 1000);
+                    fetchUsage();
+                } else {
+                    status.textContent = 'Failed to save session';
+                    status.className = 'settings-status error';
+                }
+            } catch (e) {
+                status.textContent = 'Error saving session';
+                status.className = 'settings-status error';
+            }
+        }
+
+        // Clear session
+        async function clearSession() {
+            try {
+                await fetch('/api/session', { method: 'DELETE' });
+                document.getElementById('settingsStatus').textContent = 'Session cleared';
+                document.getElementById('settingsStatus').className = 'settings-status';
+                sessionConfigured = false;
+            } catch (e) {
+                console.error('Failed to clear session:', e);
+            }
+        }
+
+        // Toggle auto-update
+        function toggleAutoUpdate() {
+            autoUpdateEnabled = !autoUpdateEnabled;
+            const toggle = document.getElementById('autoToggle');
+            toggle.classList.toggle('active', autoUpdateEnabled);
+
+            if (autoUpdateEnabled) {
+                nextUpdate = 30;
+                if (!updateInterval) {
+                    updateInterval = setInterval(fetchUsage, 30000);
+                }
+            } else {
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
+            }
+        }
+
+        // Init
+        async function init() {
+            createParticles();
+            await checkSession();
+            fetchUsage();
+            updateInterval = setInterval(fetchUsage, 30000);
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

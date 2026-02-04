@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Chart Tutorial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neon: {
+                            green: '#00ff88',
+                            cyan: '#00d4ff',
+                            magenta: '#ff00ff',
+                            orange: '#ffaa00',
+                        },
+                        dark: {
+                            900: '#0a0a1a',
+                            800: '#12122a',
+                            700: '#1a1a3a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+
+        .glow-text {
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .glow-box {
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .code-block {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 5px currentColor); }
+            50% { filter: drop-shadow(0 0 20px currentColor); }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .step-appear {
+            animation: stepAppear 0.5s ease-out forwards;
+        }
+
+        @keyframes stepAppear {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        pre code {
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .highlight-keyword { color: #ff79c6; }
+        .highlight-string { color: #f1fa8c; }
+        .highlight-number { color: #bd93f9; }
+        .highlight-comment { color: #6272a4; }
+        .highlight-function { color: #50fa7b; }
+    </style>
+</head>
+<body class="bg-dark-900 text-white min-h-screen">
+    <div x-data="tutorial()" x-init="init()" class="relative">
+        <!-- Floating Particles Background -->
+        <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <template x-for="i in 30" :key="i">
+                <div
+                    class="absolute w-1 h-1 rounded-full animate-float"
+                    :style="`
+                        left: ${Math.random() * 100}%;
+                        top: ${Math.random() * 100}%;
+                        background: ${['#00ff88', '#00d4ff', '#ff00ff', '#ffaa00'][i % 4]};
+                        box-shadow: 0 0 10px ${['#00ff88', '#00d4ff', '#ff00ff', '#ffaa00'][i % 4]};
+                        animation-delay: ${Math.random() * 3}s;
+                        animation-duration: ${3 + Math.random() * 3}s;
+                    `"
+                ></div>
+            </template>
+        </div>
+
+        <!-- Header -->
+        <header class="relative z-10 py-12 text-center border-b border-white/10">
+            <h1 class="text-4xl font-light tracking-widest uppercase text-neon-cyan glow-text mb-4">
+                Neon Chart Tutorial
+            </h1>
+            <p class="text-white/60 text-lg">How to create glowing dot-filled charts with vanilla SVG</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="sticky top-0 z-20 bg-dark-900/90 backdrop-blur-lg border-b border-white/10 py-4">
+            <div class="max-w-6xl mx-auto px-6 flex gap-4 justify-center flex-wrap">
+                <template x-for="(section, index) in sections" :key="index">
+                    <button
+                        @click="currentSection = index; currentStep = 0"
+                        :class="currentSection === index ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan' : 'bg-white/5 text-white/60 border-white/10 hover:border-white/30'"
+                        class="px-6 py-2 rounded-full border transition-all duration-300 text-sm uppercase tracking-wider"
+                        x-text="section.title"
+                    ></button>
+                </template>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+            <!-- Section: Radial Chart -->
+            <section x-show="currentSection === 0" x-cloak class="step-appear">
+                <div class="grid lg:grid-cols-2 gap-12 items-start">
+                    <!-- Live Preview -->
+                    <div class="bg-dark-800 rounded-2xl p-8 border border-white/10 glow-box sticky top-24">
+                        <h3 class="text-neon-green text-sm uppercase tracking-widest mb-6">Live Preview</h3>
+                        <div class="flex justify-center">
+                            <svg width="300" height="300" style="overflow: visible;">
+                                <!-- Background rings -->
+                                <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                                <circle cx="150" cy="150" r="80" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+
+                                <!-- Ambient glow -->
+                                <defs>
+                                    <radialGradient id="ambientGlow">
+                                        <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.15"/>
+                                        <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+                                    </radialGradient>
+                                    <filter id="glow">
+                                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                    </filter>
+                                </defs>
+                                <circle cx="150" cy="150" r="100" fill="url(#ambientGlow)"/>
+
+                                <!-- Background dots -->
+                                <g x-show="radialStep >= 1" class="transition-opacity duration-500">
+                                    <template x-for="dot in backgroundDots" :key="dot.id">
+                                        <circle :cx="dot.x" :cy="dot.y" r="2" fill="rgba(255,255,255,0.1)"/>
+                                    </template>
+                                </g>
+
+                                <!-- Filled dots -->
+                                <g x-show="radialStep >= 2" class="transition-opacity duration-500">
+                                    <template x-for="dot in filledDots.slice(0, Math.floor(filledDots.length * radialProgress))" :key="dot.id">
+                                        <circle
+                                            :cx="dot.x"
+                                            :cy="dot.y"
+                                            :r="dot.size"
+                                            fill="#00d4ff"
+                                            :opacity="dot.opacity"
+                                            style="filter: drop-shadow(0 0 3px #00d4ff)"
+                                        />
+                                    </template>
+                                </g>
+
+                                <!-- Arc outlines -->
+                                <g x-show="radialStep >= 3">
+                                    <path :d="outerArcPath" fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.7" filter="url(#glow)"/>
+                                    <path :d="innerArcPath" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.4"/>
+                                </g>
+
+                                <!-- Center text -->
+                                <g x-show="radialStep >= 4">
+                                    <text x="150" y="145" text-anchor="middle" fill="white" font-size="36" font-weight="200" style="text-shadow: 0 0 15px #00d4ff80;">
+                                        <tspan x-text="Math.round(radialProgress * 65) + '%'"></tspan>
+                                    </text>
+                                    <text x="150" y="170" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11" letter-spacing="2">USED</text>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- Progress slider -->
+                        <div class="mt-8" x-show="radialStep >= 2">
+                            <label class="text-white/50 text-sm mb-2 block">Adjust fill percentage:</label>
+                            <input type="range" min="0" max="1" step="0.01" x-model="radialProgress" class="w-full accent-neon-cyan">
+                        </div>
+                    </div>
+
+                    <!-- Steps -->
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-light text-neon-cyan glow-text">Building the Radial Chart</h2>
+
+                        <!-- Step 1 -->
+                        <div
+                            @click="radialStep = Math.max(radialStep, 1)"
+                            :class="radialStep >= 1 ? 'border-neon-cyan/50 bg-neon-cyan/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all duration-300 hover:border-neon-cyan/30"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-cyan/20 text-neon-cyan flex items-center justify-center text-sm">1</span>
+                                <h3 class="text-lg">Create Background Dot Grid</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Generate dots in concentric rings using polar coordinates.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="radialStep >= 1">
+<pre><code><span class="highlight-comment">// Generate dots for each radius ring</span>
+<span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> r = innerRadius; r < outerRadius; r += dotSpacing) {
+  <span class="highlight-keyword">const</span> circumference = <span class="highlight-number">2</span> * Math.PI * r;
+  <span class="highlight-keyword">const</span> angleStep = (dotSpacing / circumference) * <span class="highlight-number">360</span>;
+
+  <span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> angle = <span class="highlight-number">-90</span>; angle < <span class="highlight-number">270</span>; angle += angleStep) {
+    <span class="highlight-keyword">const</span> rad = angle * Math.PI / <span class="highlight-number">180</span>;
+    <span class="highlight-keyword">const</span> x = centerX + r * Math.<span class="highlight-function">cos</span>(rad);
+    <span class="highlight-keyword">const</span> y = centerY + r * Math.<span class="highlight-function">sin</span>(rad);
+    <span class="highlight-comment">// Create dot at (x, y)</span>
+  }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div
+                            @click="radialStep = Math.max(radialStep, 2)"
+                            :class="radialStep >= 2 ? 'border-neon-green/50 bg-neon-green/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all duration-300 hover:border-neon-green/30"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-green/20 text-neon-green flex items-center justify-center text-sm">2</span>
+                                <h3 class="text-lg">Fill Dots Based on Percentage</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Color dots within the fill angle with random opacity for depth.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="radialStep >= 2">
+<pre><code><span class="highlight-keyword">const</span> fillEndAngle = <span class="highlight-number">-90</span> + (percent / <span class="highlight-number">100</span>) * <span class="highlight-number">360</span>;
+
+<span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> angle = <span class="highlight-number">-90</span>; angle < fillEndAngle; angle += step) {
+  <span class="highlight-keyword">const</span> opacity = <span class="highlight-number">0.4</span> + Math.<span class="highlight-function">random</span>() * <span class="highlight-number">0.5</span>;
+  <span class="highlight-keyword">const</span> size = <span class="highlight-number">1.5</span> + Math.<span class="highlight-function">random</span>() * <span class="highlight-number">0.6</span>;
+
+  svg += <span class="highlight-string">`&lt;circle cx="\${x}" cy="\${y}"
+    r="\${size}" fill="\${color}"
+    opacity="\${opacity}"
+    style="filter: drop-shadow(0 0 2px \${color})"/&gt;`</span>;
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div
+                            @click="radialStep = Math.max(radialStep, 3)"
+                            :class="radialStep >= 3 ? 'border-neon-magenta/50 bg-neon-magenta/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all duration-300 hover:border-neon-magenta/30"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-magenta/20 text-neon-magenta flex items-center justify-center text-sm">3</span>
+                                <h3 class="text-lg">Add Glowing Arc Outlines</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Draw SVG arcs with blur filter for the neon glow effect.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="radialStep >= 3">
+<pre><code><span class="highlight-comment">// SVG arc path formula</span>
+<span class="highlight-keyword">const</span> startX = cx + radius * Math.<span class="highlight-function">cos</span>(startRad);
+<span class="highlight-keyword">const</span> startY = cy + radius * Math.<span class="highlight-function">sin</span>(startRad);
+<span class="highlight-keyword">const</span> endX = cx + radius * Math.<span class="highlight-function">cos</span>(endRad);
+<span class="highlight-keyword">const</span> endY = cy + radius * Math.<span class="highlight-function">sin</span>(endRad);
+<span class="highlight-keyword">const</span> largeArc = percent > <span class="highlight-number">50</span> ? <span class="highlight-number">1</span> : <span class="highlight-number">0</span>;
+
+<span class="highlight-keyword">const</span> path = <span class="highlight-string">`M \${startX} \${startY}
+  A \${radius} \${radius} 0 \${largeArc} 1 \${endX} \${endY}`</span>;
+
+<span class="highlight-comment">// Apply glow filter</span>
+<span class="highlight-string">`&lt;path d="\${path}" filter="url(#glow)"/&gt;`</span></code></pre>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div
+                            @click="radialStep = Math.max(radialStep, 4)"
+                            :class="radialStep >= 4 ? 'border-neon-orange/50 bg-neon-orange/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all duration-300 hover:border-neon-orange/30"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-orange/20 text-neon-orange flex items-center justify-center text-sm">4</span>
+                                <h3 class="text-lg">Add Center Text with Glow</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Use text-shadow for the neon text effect.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="radialStep >= 4">
+<pre><code><span class="highlight-string">`&lt;text x="\${centerX}" y="\${centerY}"
+  text-anchor="middle"
+  fill="#ffffff"
+  font-size="32"
+  style="text-shadow: 0 0 15px \${color}80;"&gt;
+  \${percent}%
+&lt;/text&gt;`</span></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Bar Chart -->
+            <section x-show="currentSection === 1" x-cloak class="step-appear">
+                <div class="grid lg:grid-cols-2 gap-12 items-start">
+                    <!-- Live Preview -->
+                    <div class="bg-dark-800 rounded-2xl p-8 border border-white/10 glow-box sticky top-24">
+                        <h3 class="text-neon-green text-sm uppercase tracking-widest mb-6">Live Preview</h3>
+                        <svg width="100%" height="200" viewBox="0 0 500 200" style="overflow: visible;">
+                            <defs>
+                                <filter id="barGlow">
+                                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                </filter>
+                            </defs>
+
+                            <!-- Grid lines -->
+                            <g x-show="barStep >= 1">
+                                <template x-for="i in 11" :key="i">
+                                    <g>
+                                        <line :x1="100 + (i-1) * 36" y1="20" :x2="100 + (i-1) * 36" y2="160" stroke="rgba(255,255,255,0.05)"/>
+                                        <text :x="100 + (i-1) * 36" y="180" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10" x-text="(i-1) * 10 + '%'"></text>
+                                    </g>
+                                </template>
+                            </g>
+
+                            <!-- Bar 1 -->
+                            <g>
+                                <text x="90" y="55" text-anchor="end" fill="rgba(255,255,255,0.8)" font-size="12">5-Hour</text>
+
+                                <!-- Background dots -->
+                                <g x-show="barStep >= 2">
+                                    <template x-for="dot in barBgDots1" :key="dot.id">
+                                        <circle :cx="dot.x" :cy="dot.y" r="3" fill="rgba(255,255,255,0.08)"/>
+                                    </template>
+                                </g>
+
+                                <!-- Filled dots -->
+                                <g x-show="barStep >= 3">
+                                    <template x-for="dot in barFillDots1.slice(0, Math.floor(barFillDots1.length * barProgress))" :key="dot.id">
+                                        <circle :cx="dot.x" :cy="dot.y" :r="dot.size" fill="#00ff88" :opacity="dot.opacity" style="filter: drop-shadow(0 0 2px #00ff88)"/>
+                                    </template>
+                                </g>
+
+                                <!-- Outline -->
+                                <rect x="100" y="30" width="360" height="50" fill="none" stroke="rgba(255,255,255,0.1)" rx="4" x-show="barStep >= 4"/>
+                                <rect x="100" y="30" :width="360 * barProgress * 0.65" height="50" fill="none" stroke="#00ff88" stroke-width="1" opacity="0.3" rx="4" filter="url(#barGlow)" x-show="barStep >= 4"/>
+                            </g>
+
+                            <!-- Bar 2 -->
+                            <g>
+                                <text x="90" y="125" text-anchor="end" fill="rgba(255,255,255,0.8)" font-size="12">7-Day</text>
+
+                                <g x-show="barStep >= 2">
+                                    <template x-for="dot in barBgDots2" :key="dot.id">
+                                        <circle :cx="dot.x" :cy="dot.y" r="3" fill="rgba(255,255,255,0.08)"/>
+                                    </template>
+                                </g>
+
+                                <g x-show="barStep >= 3">
+                                    <template x-for="dot in barFillDots2.slice(0, Math.floor(barFillDots2.length * barProgress))" :key="dot.id">
+                                        <circle :cx="dot.x" :cy="dot.y" :r="dot.size" fill="#00d4ff" :opacity="dot.opacity" style="filter: drop-shadow(0 0 2px #00d4ff)"/>
+                                    </template>
+                                </g>
+
+                                <rect x="100" y="100" width="360" height="50" fill="none" stroke="rgba(255,255,255,0.1)" rx="4" x-show="barStep >= 4"/>
+                                <rect x="100" y="100" :width="360 * barProgress * 0.41" height="50" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.3" rx="4" filter="url(#barGlow)" x-show="barStep >= 4"/>
+                            </g>
+                        </svg>
+
+                        <div class="mt-8" x-show="barStep >= 3">
+                            <label class="text-white/50 text-sm mb-2 block">Animation progress:</label>
+                            <input type="range" min="0" max="1" step="0.01" x-model="barProgress" class="w-full accent-neon-cyan">
+                        </div>
+                    </div>
+
+                    <!-- Steps -->
+                    <div class="space-y-6">
+                        <h2 class="text-2xl font-light text-neon-cyan glow-text">Building the Bar Chart</h2>
+
+                        <div
+                            @click="barStep = Math.max(barStep, 1)"
+                            :class="barStep >= 1 ? 'border-neon-cyan/50 bg-neon-cyan/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-cyan/20 text-neon-cyan flex items-center justify-center text-sm">1</span>
+                                <h3 class="text-lg">Draw Grid Lines & Labels</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Create percentage scale from 0-100%.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="barStep >= 1">
+<pre><code><span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> i = <span class="highlight-number">0</span>; i <= <span class="highlight-number">10</span>; i++) {
+  <span class="highlight-keyword">const</span> x = startX + (i / <span class="highlight-number">10</span>) * chartWidth;
+  svg += <span class="highlight-string">`&lt;line x1="\${x}" y1="20"
+    x2="\${x}" y2="\${height-40}"
+    stroke="rgba(255,255,255,0.05)"/&gt;`</span>;
+  svg += <span class="highlight-string">`&lt;text x="\${x}" y="\${height-15}"&gt;
+    \${i * 10}%&lt;/text&gt;`</span>;
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div
+                            @click="barStep = Math.max(barStep, 2)"
+                            :class="barStep >= 2 ? 'border-neon-green/50 bg-neon-green/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-green/20 text-neon-green flex items-center justify-center text-sm">2</span>
+                                <h3 class="text-lg">Create Dot Grid for Each Bar</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Fill bar area with evenly spaced background dots.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="barStep >= 2">
+<pre><code><span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> x = startX; x < startX + width; x += spacing) {
+  <span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> y = barY; y < barY + barHeight; y += spacing) {
+    svg += <span class="highlight-string">`&lt;circle cx="\${x}" cy="\${y}"
+      r="3" fill="rgba(255,255,255,0.08)"/&gt;`</span>;
+  }
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div
+                            @click="barStep = Math.max(barStep, 3)"
+                            :class="barStep >= 3 ? 'border-neon-magenta/50 bg-neon-magenta/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-magenta/20 text-neon-magenta flex items-center justify-center text-sm">3</span>
+                                <h3 class="text-lg">Fill Dots with Neon Color</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Color dots up to the fill percentage with glow effect.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="barStep >= 3">
+<pre><code><span class="highlight-keyword">const</span> fillWidth = (percent / <span class="highlight-number">100</span>) * chartWidth;
+
+<span class="highlight-keyword">for</span> (<span class="highlight-keyword">let</span> x = startX; x < startX + fillWidth; x += spacing) {
+  <span class="highlight-keyword">const</span> opacity = <span class="highlight-number">0.4</span> + Math.<span class="highlight-function">random</span>() * <span class="highlight-number">0.5</span>;
+  <span class="highlight-keyword">const</span> size = <span class="highlight-number">3</span> * (<span class="highlight-number">0.8</span> + Math.<span class="highlight-function">random</span>() * <span class="highlight-number">0.4</span>);
+
+  svg += <span class="highlight-string">`&lt;circle cx="\${x}" cy="\${y}"
+    r="\${size}" fill="\${color}"
+    opacity="\${opacity}"
+    style="filter: drop-shadow(0 0 2px \${color})"/&gt;`</span>;
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div
+                            @click="barStep = Math.max(barStep, 4)"
+                            :class="barStep >= 4 ? 'border-neon-orange/50 bg-neon-orange/5' : 'border-white/10'"
+                            class="p-6 rounded-xl border cursor-pointer transition-all"
+                        >
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="w-8 h-8 rounded-full bg-neon-orange/20 text-neon-orange flex items-center justify-center text-sm">4</span>
+                                <h3 class="text-lg">Add Glowing Outline</h3>
+                            </div>
+                            <p class="text-white/60 mb-4">Subtle glow border around filled portion.</p>
+                            <div class="code-block rounded-lg p-4 text-sm overflow-x-auto" x-show="barStep >= 4">
+<pre><code><span class="highlight-comment">// Background outline</span>
+svg += <span class="highlight-string">`&lt;rect x="\${startX}" y="\${y}"
+  width="\${chartWidth}" height="\${barHeight}"
+  fill="none" stroke="rgba(255,255,255,0.1)" rx="4"/&gt;`</span>;
+
+<span class="highlight-comment">// Glowing fill outline</span>
+svg += <span class="highlight-string">`&lt;rect x="\${startX}" y="\${y}"
+  width="\${fillWidth}" height="\${barHeight}"
+  fill="none" stroke="\${color}"
+  opacity="0.3" rx="4"
+  filter="url(#barGlow)"/&gt;`</span>;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Color System -->
+            <section x-show="currentSection === 2" x-cloak class="step-appear">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-light text-neon-cyan glow-text mb-8 text-center">The Neon Color System</h2>
+
+                    <div class="grid md:grid-cols-2 gap-8 mb-12">
+                        <!-- Color by percentage -->
+                        <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                            <h3 class="text-lg mb-6">Color Based on Usage</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-4 h-4 rounded-full bg-neon-green animate-pulse-glow text-neon-green"></div>
+                                    <span class="text-white/60">0-40%</span>
+                                    <span class="text-neon-green ml-auto font-mono">#00ff88</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-4 h-4 rounded-full bg-neon-cyan animate-pulse-glow text-neon-cyan"></div>
+                                    <span class="text-white/60">40-70%</span>
+                                    <span class="text-neon-cyan ml-auto font-mono">#00d4ff</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-4 h-4 rounded-full bg-neon-magenta animate-pulse-glow text-neon-magenta"></div>
+                                    <span class="text-white/60">70-90%</span>
+                                    <span class="text-neon-magenta ml-auto font-mono">#ff00ff</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-4 h-4 rounded-full bg-neon-orange animate-pulse-glow text-neon-orange"></div>
+                                    <span class="text-white/60">90-100%</span>
+                                    <span class="text-neon-orange ml-auto font-mono">#ffaa00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Code -->
+                        <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                            <h3 class="text-lg mb-6">Implementation</h3>
+                            <div class="code-block rounded-lg p-4 text-sm">
+<pre><code><span class="highlight-keyword">function</span> <span class="highlight-function">getColor</span>(percent) {
+  <span class="highlight-keyword">if</span> (percent >= <span class="highlight-number">90</span>) <span class="highlight-keyword">return</span> <span class="highlight-string">'#ffaa00'</span>;
+  <span class="highlight-keyword">if</span> (percent >= <span class="highlight-number">70</span>) <span class="highlight-keyword">return</span> <span class="highlight-string">'#ff00ff'</span>;
+  <span class="highlight-keyword">if</span> (percent >= <span class="highlight-number">40</span>) <span class="highlight-keyword">return</span> <span class="highlight-string">'#00d4ff'</span>;
+  <span class="highlight-keyword">return</span> <span class="highlight-string">'#00ff88'</span>;
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive demo -->
+                    <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                        <h3 class="text-lg mb-6 text-center">Try It - Drag the Slider</h3>
+                        <div class="flex flex-col items-center gap-6">
+                            <div
+                                class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-light transition-all duration-300"
+                                :style="`background: ${getColor(colorDemo)}20; border: 2px solid ${getColor(colorDemo)}; box-shadow: 0 0 30px ${getColor(colorDemo)}50; color: ${getColor(colorDemo)};`"
+                                x-text="colorDemo + '%'"
+                            ></div>
+                            <input type="range" min="0" max="100" x-model="colorDemo" class="w-64 accent-neon-cyan">
+                            <div class="text-white/60 font-mono" x-text="getColor(colorDemo)"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Glow Effects -->
+            <section x-show="currentSection === 3" x-cloak class="step-appear">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-light text-neon-cyan glow-text mb-8 text-center">Creating Glow Effects</h2>
+
+                    <div class="grid gap-8">
+                        <!-- SVG Filter -->
+                        <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                            <h3 class="text-lg mb-4 text-neon-green">1. SVG Blur Filter</h3>
+                            <p class="text-white/60 mb-6">Use feGaussianBlur for soft glow on shapes.</p>
+                            <div class="grid md:grid-cols-2 gap-8 items-center">
+                                <div class="code-block rounded-lg p-4 text-sm">
+<pre><code><span class="highlight-string">&lt;defs&gt;
+  &lt;filter id="glow"&gt;
+    &lt;feGaussianBlur
+      stdDeviation="3"
+      result="blur"/&gt;
+    &lt;feMerge&gt;
+      &lt;feMergeNode in="blur"/&gt;
+      &lt;feMergeNode in="SourceGraphic"/&gt;
+    &lt;/feMerge&gt;
+  &lt;/filter&gt;
+&lt;/defs&gt;
+
+&lt;path ... filter="url(#glow)"/&gt;</span></code></pre>
+                                </div>
+                                <div class="flex justify-center gap-8">
+                                    <div class="text-center">
+                                        <svg width="80" height="80">
+                                            <circle cx="40" cy="40" r="30" fill="#00d4ff"/>
+                                        </svg>
+                                        <p class="text-white/40 text-sm mt-2">Without</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <svg width="80" height="80">
+                                            <defs>
+                                                <filter id="demoGlow">
+                                                    <feGaussianBlur stdDeviation="4" result="blur"/>
+                                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                                </filter>
+                                            </defs>
+                                            <circle cx="40" cy="40" r="30" fill="#00d4ff" filter="url(#demoGlow)"/>
+                                        </svg>
+                                        <p class="text-white/40 text-sm mt-2">With Filter</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CSS drop-shadow -->
+                        <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                            <h3 class="text-lg mb-4 text-neon-magenta">2. CSS drop-shadow for Dots</h3>
+                            <p class="text-white/60 mb-6">Inline style for individual dot glow.</p>
+                            <div class="grid md:grid-cols-2 gap-8 items-center">
+                                <div class="code-block rounded-lg p-4 text-sm">
+<pre><code><span class="highlight-string">&lt;circle
+  cx="50" cy="50" r="5"
+  fill="#ff00ff"
+  style="filter: drop-shadow(0 0 3px #ff00ff)"
+/&gt;</span></code></pre>
+                                </div>
+                                <div class="flex justify-center gap-8">
+                                    <div class="text-center">
+                                        <svg width="80" height="80">
+                                            <circle cx="40" cy="40" r="8" fill="#ff00ff"/>
+                                        </svg>
+                                        <p class="text-white/40 text-sm mt-2">Without</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <svg width="80" height="80">
+                                            <circle cx="40" cy="40" r="8" fill="#ff00ff" style="filter: drop-shadow(0 0 5px #ff00ff)"/>
+                                        </svg>
+                                        <p class="text-white/40 text-sm mt-2">With drop-shadow</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Text shadow -->
+                        <div class="bg-dark-800 rounded-2xl p-8 border border-white/10">
+                            <h3 class="text-lg mb-4 text-neon-orange">3. Text Shadow for Labels</h3>
+                            <p class="text-white/60 mb-6">CSS text-shadow creates the neon text effect.</p>
+                            <div class="grid md:grid-cols-2 gap-8 items-center">
+                                <div class="code-block rounded-lg p-4 text-sm">
+<pre><code><span class="highlight-string">&lt;text
+  style="text-shadow: 0 0 15px #ffaa0080;"
+&gt;
+  65%
+&lt;/text&gt;</span></code></pre>
+                                </div>
+                                <div class="flex justify-center gap-8">
+                                    <div class="text-center">
+                                        <span class="text-4xl text-neon-orange">65%</span>
+                                        <p class="text-white/40 text-sm mt-2">Without</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <span class="text-4xl text-neon-orange glow-text">65%</span>
+                                        <p class="text-white/40 text-sm mt-2">With text-shadow</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="relative z-10 py-8 border-t border-white/10 text-center text-white/40 text-sm">
+            <p>Built with vanilla SVG, Tailwind CSS, and Alpine.js</p>
+        </footer>
+    </div>
+
+    <script>
+        function tutorial() {
+            return {
+                currentSection: 0,
+                sections: [
+                    { title: 'Radial Chart' },
+                    { title: 'Bar Chart' },
+                    { title: 'Color System' },
+                    { title: 'Glow Effects' }
+                ],
+
+                // Radial chart state
+                radialStep: 0,
+                radialProgress: 0.65,
+                backgroundDots: [],
+                filledDots: [],
+
+                // Bar chart state
+                barStep: 0,
+                barProgress: 1,
+                barBgDots1: [],
+                barBgDots2: [],
+                barFillDots1: [],
+                barFillDots2: [],
+
+                // Color demo
+                colorDemo: 45,
+
+                init() {
+                    this.generateRadialDots();
+                    this.generateBarDots();
+                },
+
+                generateRadialDots() {
+                    const centerX = 150, centerY = 150;
+                    const innerRadius = 85, outerRadius = 125;
+                    const dotSpacing = 10;
+                    let id = 0;
+
+                    for (let r = innerRadius; r < outerRadius; r += dotSpacing) {
+                        const circumference = 2 * Math.PI * r;
+                        const angleStep = (dotSpacing / circumference) * 360;
+
+                        for (let angle = -90; angle < 270; angle += angleStep) {
+                            const rad = angle * Math.PI / 180;
+                            const x = centerX + r * Math.cos(rad);
+                            const y = centerY + r * Math.sin(rad);
+
+                            this.backgroundDots.push({ id: id++, x, y });
+
+                            // Filled dots go up to fill angle
+                            const fillEndAngle = -90 + 0.65 * 360;
+                            if (angle < fillEndAngle) {
+                                this.filledDots.push({
+                                    id: id++,
+                                    x, y,
+                                    opacity: 0.4 + Math.random() * 0.5,
+                                    size: 2 + Math.random() * 1
+                                });
+                            }
+                        }
+                    }
+                },
+
+                generateBarDots() {
+                    const startX = 105, barHeight = 50, spacing = 8;
+                    let id = 0;
+
+                    // Bar 1
+                    for (let x = startX; x < 460; x += spacing) {
+                        for (let y = 35; y < 75; y += spacing) {
+                            this.barBgDots1.push({ id: id++, x, y });
+                            if (x < startX + 360 * 0.65) {
+                                this.barFillDots1.push({
+                                    id: id++, x, y,
+                                    opacity: 0.4 + Math.random() * 0.5,
+                                    size: 3 * (0.8 + Math.random() * 0.4)
+                                });
+                            }
+                        }
+                    }
+
+                    // Bar 2
+                    for (let x = startX; x < 460; x += spacing) {
+                        for (let y = 105; y < 145; y += spacing) {
+                            this.barBgDots2.push({ id: id++, x, y });
+                            if (x < startX + 360 * 0.41) {
+                                this.barFillDots2.push({
+                                    id: id++, x, y,
+                                    opacity: 0.4 + Math.random() * 0.5,
+                                    size: 3 * (0.8 + Math.random() * 0.4)
+                                });
+                            }
+                        }
+                    }
+                },
+
+                get outerArcPath() {
+                    const cx = 150, cy = 150, r = 125;
+                    const endAngle = -90 + this.radialProgress * 360;
+                    const startRad = -90 * Math.PI / 180;
+                    const endRad = endAngle * Math.PI / 180;
+                    const x1 = cx + r * Math.cos(startRad);
+                    const y1 = cy + r * Math.sin(startRad);
+                    const x2 = cx + r * Math.cos(endRad);
+                    const y2 = cy + r * Math.sin(endRad);
+                    const largeArc = this.radialProgress > 0.5 ? 1 : 0;
+                    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+                },
+
+                get innerArcPath() {
+                    const cx = 150, cy = 150, r = 85;
+                    const endAngle = -90 + this.radialProgress * 360;
+                    const startRad = -90 * Math.PI / 180;
+                    const endRad = endAngle * Math.PI / 180;
+                    const x1 = cx + r * Math.cos(startRad);
+                    const y1 = cy + r * Math.sin(startRad);
+                    const x2 = cx + r * Math.cos(endRad);
+                    const y2 = cy + r * Math.sin(endRad);
+                    const largeArc = this.radialProgress > 0.5 ? 1 : 0;
+                    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+                },
+
+                getColor(percent) {
+                    if (percent >= 90) return '#ffaa00';
+                    if (percent >= 70) return '#ff00ff';
+                    if (percent >= 40) return '#00d4ff';
+                    return '#00ff88';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
