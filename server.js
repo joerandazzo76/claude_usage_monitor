@@ -5,31 +5,25 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3000;
 
-// Load settings from settings.local.json
-let settings = {};
-const settingsPath = path.join(__dirname, 'settings.local.json');
-
-try {
-    if (fs.existsSync(settingsPath)) {
-        const raw = fs.readFileSync(settingsPath, 'utf8');
-        settings = JSON.parse(raw);
-        console.log('Loaded settings from settings.local.json');
-    }
-} catch (err) {
-    console.error('Error reading settings.local.json:', err.message);
+// Load .env file (simple parser, no deps)
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w]+)\s*=\s*(.*)?\s*$/);
+        if (match && !process.env[match[1]]) {
+            process.env[match[1]] = (match[2] || '').replace(/^["']|["']$/g, '');
+        }
+    });
 }
 
-const SESSION_COOKIE = process.env.CLAUDE_SESSION_COOKIE || settings.sessionCookie || '';
+const PORT = process.env.PORT || 3000;
+const SESSION_COOKIE = process.env.CLAUDE_SESSION_COOKIE || '';
 
 if (!SESSION_COOKIE) {
     console.log('\n⚠️  No session cookie configured!\n');
-    console.log('Option 1: Create settings.local.json with:');
-    console.log('  { "sessionCookie": "sk-ant-sid01-..." }\n');
-    console.log('Option 2: Set environment variable:');
-    console.log('  set CLAUDE_SESSION_COOKIE=sk-ant-sid01-... (Windows)');
-    console.log('  export CLAUDE_SESSION_COOKIE=sk-ant-sid01-... (Mac/Linux)\n');
+    console.log('Create a .env file with:');
+    console.log('  CLAUDE_SESSION_COOKIE=sk-ant-sid01-...\n');
     console.log('To get your cookie:');
     console.log('  1. Open https://claude.ai and log in');
     console.log('  2. DevTools (F12) → Application → Cookies → claude.ai');
@@ -73,7 +67,7 @@ function sendError(res, statusCode, message, details = null) {
 function proxyToClaudeAI(req, res) {
     if (!SESSION_COOKIE) {
         sendError(res, 401, 'No session cookie configured',
-            'Set sessionCookie in settings.local.json or CLAUDE_SESSION_COOKIE env var');
+            'Add CLAUDE_SESSION_COOKIE to .env file');
         return;
     }
 
