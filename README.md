@@ -2,111 +2,52 @@
 
 Real-time dashboard for monitoring your Claude.ai usage limits.
 
-## Features
-
-- Live usage data from Claude.ai API
-- 5-hour and 7-day rolling window tracking
-- Auto-refresh every 5 seconds
-- Color-coded progress bars (green/blue/orange/red)
-- 3 color themes (Purple, Dark, Ocean)
-- Demo mode fallback when not configured
-
 ## Quick Start
 
-1. **Copy settings example:**
-   ```bash
-   cp .claude/settings.example.json .claude/settings.local.json
-   ```
-
-2. **Get your session cookie:**
-   - Open https://claude.ai and log in
-   - Press F12 → Application → Cookies → claude.ai
-   - Copy the `sessionKey` value
-
-3. **Add cookie to .claude/settings.local.json:**
-   ```json
-   {
-     "sessionCookie": "sk-ant-sid01-..."
-   }
-   ```
-
-4. **Start the server:**
-   ```bash
-   node server.js
-   ```
-
-5. **Open http://localhost:3000**
-
-## Themes
-
-Click the theme buttons (top right) to switch between:
-- **Purple** - Default gradient theme
-- **Dark** - Dark mode
-- **Ocean** - Blue/teal theme
-
-Theme preference is saved in your browser.
-
-## Configuration
-
-### .claude/settings.local.json
-
-```json
-{
-  "sessionCookie": "your-session-key-here",
-  "theme": "purple"
-}
-```
-
-### Environment Variables
-
 ```bash
-# Windows
-set CLAUDE_SESSION_COOKIE=sk-ant-sid01-...
+# 1. Copy the example env file
+cp .env.example .env
+
+# 2. Add your session cookie to .env (see below)
+
+# 3. Run it
 node server.js
 
-# Mac/Linux
-export CLAUDE_SESSION_COOKIE=sk-ant-sid01-...
-node server.js
+# 4. Open http://localhost:3000
 ```
 
-### Port
+## Get Your Session Cookie
 
-```bash
-set PORT=8080
-node server.js
-```
+1. Go to https://claude.ai and log in
+2. Open DevTools (F12) → Application → Cookies → claude.ai
+3. Copy the `sessionKey` value
+4. Paste it in `.env`:
+   ```
+   CLAUDE_SESSION_COOKIE=sk-ant-sid01-...
+   ```
 
-## API Endpoints
+## Features
 
-| Endpoint | Description |
-|----------|-------------|
-| `/` | Dashboard UI |
-| `/api/usage` | Proxied usage data from Claude.ai |
-| `/api/health` | Health check |
+- Live usage data from Claude.ai
+- 5-hour and 7-day rolling window tracking
+- Auto-refresh every 5 seconds
+- Color-coded progress bars
+- 3 themes (Purple, Dark, Ocean)
+- Demo mode when not configured
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| "Session expired" | Get a new cookie from claude.ai |
+| Port in use | Add `PORT=3001` to .env |
+| Stuck on "Initializing" | Hard refresh (Ctrl+Shift+R) |
 
 ## Files
 
 ```
-claude_usage/
-├── .claude/
-│   ├── settings.example.json  # Example config
-│   └── settings.local.json    # Your config (gitignored)
-├── server.js                  # Node.js proxy server
-├── claude_usage_monitor.html  # Dashboard UI
-├── .gitignore
-└── README.md
+├── server.js          # Node server (zero deps)
+├── claude_usage_monitor.html
+├── .env               # Your config (gitignored)
+└── .env.example       # Template
 ```
-
-## Troubleshooting
-
-**"Session expired or invalid"** - Get a new cookie from claude.ai
-
-**"No session cookie configured"** - Create .claude/settings.local.json with your cookie
-
-**Port already in use** - `set PORT=3001 && node server.js`
-
-**Stuck on "Initializing"** - Hard refresh (Ctrl+Shift+R)
-
-## License
-
-MIT
