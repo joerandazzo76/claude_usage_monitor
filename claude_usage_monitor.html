@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Usage Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0,0,0,0.2);
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --accent: #667eea;
+            --progress-bg: #f0f0f0;
+            --countdown-bg: #f8f8f8;
+            --chart-grid: #f0f0f0;
+            --chart-available: #e8e8e8;
+            --warning-bg: #fff8e1;
+            --warning-text: #856404;
+            --code-bg: #f4f4f4;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient-start: #1a1a2e;
+            --bg-gradient-end: #16213e;
+            --card-bg: #252538;
+            --card-shadow: rgba(0,0,0,0.4);
+            --text-primary: #e8e8e8;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --accent: #8b5cf6;
+            --progress-bg: #3a3a4a;
+            --countdown-bg: #3a3a4a;
+            --chart-grid: #3a3a4a;
+            --chart-available: #3a3a4a;
+            --warning-bg: #3d3520;
+            --warning-text: #fbbf24;
+            --code-bg: #3a3a4a;
+        }
+
+        [data-theme="ocean"] {
+            --bg-gradient-start: #0891b2;
+            --bg-gradient-end: #0e7490;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0,0,0,0.15);
+            --text-primary: #164e63;
+            --text-secondary: #0e7490;
+            --text-muted: #67a3b0;
+            --accent: #0891b2;
+            --progress-bg: #e0f2fe;
+            --countdown-bg: #ecfeff;
+            --chart-grid: #e0f2fe;
+            --chart-available: #e0f2fe;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --code-bg: #ecfeff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .theme-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.15);
+        }
+
+        .theme-btn.active {
+            border-color: var(--text-primary);
+        }
+
+        .theme-btn[data-theme="purple"] {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .theme-btn[data-theme="dark"] {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+        }
+
+        .theme-btn[data-theme="ocean"] {
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .chart-container h2 {
+            color: var(--accent);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px var(--card-shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card h3 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .metric-card .values {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .metric-card .current {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .metric-card .limit {
+            font-size: 20px;
+            color: var(--text-muted);
+        }
+
+        .metric-card .percentage {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .metric-card .reset-time {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: var(--progress-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-fill.low {
+            background: linear-gradient(90deg, #6bcf7f, #51b36a);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #4a9eff, #3b7ed1);
+        }
+
+        .progress-fill.high {
+            background: linear-gradient(90deg, #ffaa00, #ff8800);
+        }
+
+        .progress-fill.critical {
+            background: linear-gradient(90deg, #ff4444, #cc0000);
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 20px 25px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px var(--card-shadow);
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6bcf7f;
+            animation: pulse 2s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(107, 207, 127, 0.5);
+        }
+
+        .status-dot.error {
+            background: #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .countdown {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            background: var(--countdown-bg);
+            border-radius: 20px;
+        }
+
+        .error-message {
+            padding: 20px;
+            background: #fff3f3;
+            border: 2px solid #ff4444;
+            border-radius: 12px;
+            color: #cc0000;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.1);
+        }
+
+        .error-message strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .instructions {
+            padding: 25px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px var(--card-shadow);
+        }
+
+        .instructions h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .instructions p, .instructions ol {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        .instructions code {
+            background: var(--code-bg);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--accent);
+        }
+
+        .instructions a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .instructions a:hover {
+            text-decoration: underline;
+        }
+
+        .instructions .note {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--warning-bg);
+            border-radius: 8px;
+            color: var(--warning-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="theme-selector">
+                <button class="theme-btn active" data-theme="purple" title="Purple"></button>
+                <button class="theme-btn" data-theme="dark" title="Dark"></button>
+                <button class="theme-btn" data-theme="ocean" title="Ocean"></button>
+            </div>
+            <h1>Claude Usage Monitor</h1>
+            <p>Real-time tracking of your Claude.ai plan usage</p>
+        </div>
+
+        <div id="content">
+            <div class="instructions">
+                <h2>Setup Instructions</h2>
+                <p>
+                    This monitor fetches live data from Claude.ai. To use it:
+                </p>
+                <ol>
+                    <li>Open <a href="https://claude.ai" target="_blank">claude.ai</a> and log in to your account</li>
+                    <li>Make sure you're logged in before refreshing this page</li>
+                    <li>The monitor will automatically update every 5 seconds</li>
+                </ol>
+                <p class="note">
+                    <strong>Note:</strong> Due to browser security (CORS), this page must be served from the same domain as Claude.ai,
+                    or you need to use a browser extension. Currently showing placeholder data until authentication is successful.
+                </p>
+            </div>
+        </div>
+
+        <div class="metrics-grid" id="metrics-grid"></div>
+
+        <div class="chart-container" id="chart-container" style="display: none;">
+            <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: 600;">Usage Overview</h2>
+            <div class="chart-wrapper">
+                <canvas id="usageChart"></canvas>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-dot" id="status-dot"></div>
+                <span class="status-text" id="status-text">Initializing...</span>
+            </div>
+            <span class="countdown" id="countdown">Next update in 5s</span>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let chart = null;
+        let updateInterval = null;
+        let countdownInterval = null;
+        let nextUpdateSeconds = 5;
+        let lastUpdateTime = null;
+        let usageData = [];
+        let isDemoMode = false;
+        let failedAttempts = 0;
+
+        // Theme management
+        const themes = ['purple', 'dark', 'ocean'];
+        let currentTheme = localStorage.getItem('theme') || 'purple';
+
+        function setTheme(theme) {
+            if (theme === 'purple') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            currentTheme = theme;
+            localStorage.setItem('theme', theme);
+
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+
+            // Recreate chart with new colors
+            if (chart) {
+                updateChart();
+            }
+        }
+
+        // Initialize theme
+        setTheme(currentTheme);
+
+        // Theme button listeners
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+        });
+
+        // DOM elements
+        const metricsGrid = document.getElementById('metrics-grid');
+        const chartContainer = document.getElementById('chart-container');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const countdown = document.getElementById('countdown');
+        const content = document.getElementById('content');
+
+        // Get color based on percentage
+        function getColorClass(percent) {
+            if (percent >= 90) return 'critical';
+            if (percent >= 70) return 'high';
+            if (percent >= 40) return 'medium';
+            return 'low';
+        }
+
+        function getColor(percent) {
+            if (percent >= 90) return '#ff4444';
+            if (percent >= 70) return '#ffaa00';
+            if (percent >= 40) return '#4a9eff';
+            return '#6bcf7f';
+        }
+
+        function getChartColors() {
+            const style = getComputedStyle(document.documentElement);
+            return {
+                grid: style.getPropertyValue('--chart-grid').trim() || '#f0f0f0',
+                available: style.getPropertyValue('--chart-available').trim() || '#e8e8e8',
+                text: style.getPropertyValue('--text-primary').trim() || '#333'
+            };
+        }
+
+        // Generate demo data
+        function generateDemoData() {
+            const now = Date.now();
+            const variance = Math.sin(now / 10000) * 5;
+
+            return [
+                {
+                    name: '5-Hour Window',
+                    current: Math.floor(45 + variance),
+                    limit: 100,
+                    resetTime: 'in 2h 15m'
+                },
+                {
+                    name: '7-Day Window',
+                    current: Math.floor(28 + variance * 2),
+                    limit: 100,
+                    resetTime: 'in 3d 8h'
+                }
+            ];
+        }
+
+        // Create metric card
+        function createMetricCard(metric) {
+            const percent = metric.limit > 0 ? Math.round((metric.current / metric.limit) * 100) : 0;
+            const colorClass = getColorClass(percent);
+            const color = getColor(percent);
+
+            return `
+                <div class="metric-card">
+                    <h3>${metric.name}</h3>
+                    <div class="values">
+                        <span class="current">${metric.current.toLocaleString()}</span>
+                        <span class="limit">/ ${metric.limit.toLocaleString()}</span>
+                    </div>
+                    <div class="percentage" style="color: ${color}">
+                        ${percent}% used
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${colorClass}" style="width: ${percent}%"></div>
+                    </div>
+                    ${metric.resetTime ? `<div class="reset-time">Resets ${metric.resetTime}</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Render metrics grid
+        function renderMetrics() {
+            if (usageData.length === 0) return;
+
+            metricsGrid.innerHTML = usageData.map(metric => createMetricCard(metric)).join('');
+            metricsGrid.style.display = 'grid';
+        }
+
+        // Update or create chart
+        function updateChart() {
+            if (usageData.length === 0) return;
+
+            const ctx = document.getElementById('usageChart');
+            if (!ctx) return;
+
+            chartContainer.style.display = 'block';
+
+            const labels = usageData.map(m => m.name);
+            const percentages = usageData.map(m =>
+                m.limit > 0 ? Math.round((m.current / m.limit) * 100) : 0
+            );
+            const colors = percentages.map(p => getColor(p));
+            const remainingPercentages = percentages.map(p => Math.max(0, 100 - p));
+            const chartColors = getChartColors();
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Used',
+                            data: percentages,
+                            backgroundColor: colors,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: 'Available',
+                            data: remainingPercentages,
+                            backgroundColor: chartColors.available,
+                            borderRadius: 8,
+                            borderSkipped: false,
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                display: true,
+                                color: chartColors.grid
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                font: { size: 12 },
+                                color: chartColors.text
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 13, weight: '600' },
+                                color: chartColors.text
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 13, weight: '600' },
+                                color: chartColors.text
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            borderRadius: 8,
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            callbacks: {
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    const metric = usageData[dataIndex];
+                                    if (context.dataset.label === 'Used') {
+                                        return `Used: ${metric.current.toLocaleString()} / ${metric.limit.toLocaleString()} (${context.parsed.x.toFixed(1)}%)`;
+                                    } else {
+                                        return `Available: ${context.parsed.x.toFixed(1)}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update countdown timer
+        function updateCountdown() {
+            if (nextUpdateSeconds > 0) {
+                countdown.textContent = `Next update in ${nextUpdateSeconds}s`;
+                nextUpdateSeconds--;
+            } else {
+                countdown.textContent = 'Updating...';
+            }
+        }
+
+        // Fetch usage data from Claude.ai
+        async function fetchUsage() {
+            if (!isDemoMode && failedAttempts < 3) {
+                try {
+                    statusText.textContent = 'Fetching live data...';
+
+                    const isServer = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+
+                    if (!isServer) {
+                        throw new Error('Please run via HTTP server (not file://)');
+                    }
+
+                    const response = await fetch('/api/usage', {
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to fetch data');
+                    }
+
+                    const data = await response.json();
+                    usageData = [];
+
+                    if (data.five_hour) {
+                        const resetTime = data.five_hour.resets_at ? formatResetTime(new Date(data.five_hour.resets_at)) : null;
+                        usageData.push({
+                            name: '5-Hour Window',
+                            current: Math.round(data.five_hour.utilization),
+                            limit: 100,
+                            resetTime: resetTime
+                        });
+                    }
+
+                    if (data.seven_day) {
+                        const resetTime = data.seven_day.resets_at ? formatResetTime(new Date(data.seven_day.resets_at)) : null;
+                        usageData.push({
+                            name: '7-Day Window',
+                            current: Math.round(data.seven_day.utilization),
+                            limit: 100,
+                            resetTime: resetTime
+                        });
+                    }
+
+                    if (data.seven_day_opus) {
+                        const resetTime = data.seven_day_opus.resets_at ? formatResetTime(new Date(data.seven_day_opus.resets_at)) : null;
+                        usageData.push({
+                            name: 'Opus (7-Day)',
+                            current: Math.round(data.seven_day_opus.utilization),
+                            limit: 100,
+                            resetTime: resetTime
+                        });
+                    }
+
+                    if (data.seven_day_sonnet) {
+                        const resetTime = data.seven_day_sonnet.resets_at ? formatResetTime(new Date(data.seven_day_sonnet.resets_at)) : null;
+                        usageData.push({
+                            name: 'Sonnet (7-Day)',
+                            current: Math.round(data.seven_day_sonnet.utilization),
+                            limit: 100,
+                            resetTime: resetTime
+                        });
+                    }
+
+                    content.style.display = 'none';
+                    renderMetrics();
+                    updateChart();
+
+                    statusDot.classList.remove('error');
+                    isDemoMode = false;
+                    lastUpdateTime = new Date();
+                    statusText.textContent = `Live Mode - Updated: ${lastUpdateTime.toLocaleTimeString()}`;
+                    nextUpdateSeconds = 5;
+                    return;
+
+                } catch (error) {
+                    console.error('Live fetch failed:', error);
+                    failedAttempts++;
+
+                    if (failedAttempts >= 3) {
+                        isDemoMode = true;
+                    }
+                }
+            }
+
+            // Demo mode fallback
+            try {
+                usageData = generateDemoData();
+                content.style.display = 'none';
+                renderMetrics();
+                updateChart();
+
+                statusDot.classList.remove('error');
+                lastUpdateTime = new Date();
+                statusText.textContent = `Demo Mode - Updated: ${lastUpdateTime.toLocaleTimeString()}`;
+                nextUpdateSeconds = 5;
+            } catch (error) {
+                console.error('Error in demo mode:', error);
+                statusDot.classList.add('error');
+                statusText.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Format reset time
+        function formatResetTime(date) {
+            const now = new Date();
+            const diff = date - now;
+
+            if (diff < 0) return 'now';
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (hours > 24) {
+                const days = Math.floor(hours / 24);
+                const remainingHours = hours % 24;
+                return `in ${days}d ${remainingHours}h`;
+            } else if (hours > 0) {
+                return `in ${hours}h ${minutes}m`;
+            } else {
+                return `in ${minutes}m`;
+            }
+        }
+
+        // Initialize
+        function init() {
+            fetchUsage();
+            updateInterval = setInterval(fetchUsage, 5000);
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) clearInterval(updateInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (chart) chart.destroy();
+        });
+
+        // Start when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
