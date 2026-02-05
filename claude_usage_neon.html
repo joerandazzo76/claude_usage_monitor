@@ -526,6 +526,8 @@
     <script>
         // State
         let usageData = [];
+        let sparkleTick = 0;
+        const sparkleIntervalMs = 200;
         let failedAttempts = 0;
         let nextUpdate = 30;
         let autoUpdateEnabled = true;
@@ -566,6 +568,11 @@
             return colors.green;
         }
 
+        function noise(a, b, seed = 0) {
+            const x = Math.sin((a + seed) * 12.9898 + (b - seed) * 78.233) * 43758.5453;
+            return x - Math.floor(x);
+        }
+
         // Create dot-filled horizontal bar SVG
         function createDotBar(percent, color, width, height = 8) {
             const dotSpacing = 4;
@@ -583,7 +590,7 @@
             const fillWidth = (percent / 100) * width;
             for (let x = dotRadius; x < fillWidth - dotRadius; x += dotSpacing) {
                 for (let y = dotRadius; y < height - dotRadius; y += dotSpacing) {
-                    const opacity = 0.5 + Math.random() * 0.5;
+                    const opacity = 0.5 + noise(x, y, sparkleTick) * 0.5;
                     svg += `<circle cx="${x}" cy="${y}" r="${dotRadius}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
                 }
             }
@@ -612,6 +619,21 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        function refreshSparkleMetricBars() {
+            const cards = document.querySelectorAll('#metricsGrid .metric-card');
+            usageData.forEach((item, index) => {
+                const card = cards[index];
+                if (!card) return;
+                const svg = card.querySelector('svg');
+                if (!svg) return;
+                const color = getColor(item.current);
+                const barWidth = 200;
+                svg.setAttribute('width', barWidth);
+                svg.setAttribute('height', '10');
+                svg.innerHTML = createDotBar(item.current, color, barWidth, 10);
+            });
         }
 
         // Render horizontal bar chart
@@ -674,8 +696,8 @@
                 // Filled bar (colored dots)
                 for (let x = startX + dotRadius + 2; x < startX + fillWidth - dotRadius; x += dotSpacing) {
                     for (let dy = dotRadius + 2; dy < barHeight - dotRadius; dy += dotSpacing) {
-                        const opacity = 0.4 + Math.random() * 0.5;
-                        const size = dotRadius * (0.8 + Math.random() * 0.4);
+                        const opacity = 0.4 + noise(x, y + dy, sparkleTick) * 0.5;
+                        const size = dotRadius * (0.8 + noise(y + dy, x, sparkleTick) * 0.4);
                         svgContent += `<circle cx="${x}" cy="${y + dy}" r="${size}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
                     }
                 }
@@ -745,8 +767,8 @@
                     const rad = angle * Math.PI / 180;
                     const x = centerX + r * Math.cos(rad);
                     const y = centerY + r * Math.sin(rad);
-                    const opacity = 0.4 + Math.random() * 0.5;
-                    const dotSize = 1.5 + Math.random() * 0.6;
+                    const opacity = 0.4 + noise(r, angle, sparkleTick) * 0.5;
+                    const dotSize = 1.5 + noise(angle, r, sparkleTick) * 0.6;
                     svg += `<circle cx="${x}" cy="${y}" r="${dotSize}" fill="${color}" opacity="${opacity}" style="filter: drop-shadow(0 0 2px ${color})"/>`;
                 }
             }
@@ -825,6 +847,23 @@
             renderMetricCards();
             renderBarChart();
             renderRadialCharts();
+        }
+
+        function preserveScroll(updateFn) {
+            const y = window.scrollY;
+            updateFn();
+            window.scrollTo(0, y);
+        }
+
+        function refreshSparkleBars() {
+            if (usageData.length === 0) return;
+            refreshSparkleMetricBars();
+            preserveScroll(renderBarChart);
+        }
+
+        function refreshSparkleRadials() {
+            if (usageData.length === 0) return;
+            preserveScroll(renderRadialCharts);
         }
 
         // Fetch data
@@ -1018,6 +1057,11 @@
             fetchUsage();
             updateInterval = setInterval(fetchUsage, 30000);
             countdownInterval = setInterval(updateCountdown, 1000);
+            setInterval(() => {
+                sparkleTick = (sparkleTick + 1) % 100000;
+                refreshSparkleBars();
+                refreshSparkleRadials();
+            }, sparkleIntervalMs);
         }
 
         init();
